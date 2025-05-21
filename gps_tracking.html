@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPS Tracking</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <style>
+        #map { height: 500px; }
+        .btn-container {
+            display: flex;
+            gap: 10px;
+        }
+        .custom-popup {
+            font-size: 14px;
+            min-width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">GPS Tracking ARI</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ml-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">About</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-lg-8">
+                <div id="map"></div>
+            </div>
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title">Data GPS ARI</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <table class="table table-borderless"> 
+                                <tbody> 
+                                    <tr> 
+                                        <td style="width: 20%;">Date</td> 
+                                        <td>: <span id="time_date"></span></td> 
+                                    </tr> 
+                                    <tr> 
+                                        <td>Time</td> 
+                                        <td>: <span id="time_time"></span></td> 
+                                    </tr> 
+                                    <tr> 
+                                        <td>Temperature</td> 
+                                        <td>: <span id="temperature"></span> °C</td> 
+                                    </tr> 
+                                    <tr> 
+                                        <td>Humidity</td> 
+                                        <td>: <span id="humidity"></span> %</td> 
+                                    </tr> 
+                                    <tr> 
+                                        <td>Battery</td> 
+                                        <td>: <span id="battery"></span> %</td> 
+                                    </tr> 
+                                    <tr> 
+                                        <td>Gyro X</td> 
+                                        <td>: <span id="gyroX"></span></td> 
+                                    </tr> 
+                                    <tr> 
+                                        <td>Gyro Y</td> 
+                                        <td>: <span id="gyroY"></span></td> 
+                                    </tr> 
+                                    <tr> 
+                                        <td>Gyro Z</td> 
+                                        <td>: <span id="gyroZ"></span></td> 
+                                    </tr> 
+                                    <tr> 
+                                        <td>Latitude</td> 
+                                        <td>: <span id="latitude"></span></td> 
+                                    </tr> 
+                                    <tr> 
+                                        <td>Longitude</td> 
+                                        <td>: <span id="longitude"></span></td> 
+                                    </tr> 
+                                </tbody> 
+                            </table>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="btn-container">
+                                <button id="startTrackingButton" class="btn btn-success">Start Tracking</button>
+                                <button id="stopTrackingButton" class="btn btn-danger" style="display: none;">Stop Tracking</button>
+                                <button id="resetButton" class="btn btn-warning" style="display: none;">Reset</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.min.js" integrity="sha384-BBtl+eGJRgqQAUMxJ7pMwbEyER4l1g+O15P+16Ep7Q9Q+zqX6gSbd85u4mG4QzX+" crossorigin="anonymous"></script>
+    <script>
+        // Map initialization
+        var map = L.map('map', {
+            attributionControl: false
+        }).setView([0, 0], 15);
+
+        // Marker icons (without shadows)
+        var blueIcon = new L.Icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34]
+        });
+        
+        var redIcon = new L.Icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34]
+        });
+        
+        var greenIcon = new L.Icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34]
+        });
+
+        // Map elements
+        var initialMarker = L.marker([0, 0], {icon: redIcon});
+        var trackingMarker = L.marker([0, 0], {icon: blueIcon});
+        var finishMarker = L.marker([0, 0], {icon: greenIcon}); 
+        var polyline = L.polyline([], { color: 'blue' });
+        var pointMarkers = []; // Array to store all point markers
+        
+        // UI Elements
+        var startTrackingButton = document.getElementById('startTrackingButton');
+        var stopTrackingButton = document.getElementById('stopTrackingButton');
+        var resetButton = document.getElementById('resetButton');
+        
+        // Tracking state
+        var isTracking = false;
+        var trackPoints = [];
+        var esp32IP = ""; // Will be set after getting first data point
+        var currentFileName = ""; // To store the current CSV filename
+        var lastData = null; // Store the last received data
+        var pointInterval = null; // Interval for adding point markers
+
+        // Initialize map tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Function to create a custom popup with sensor data
+        function createPopupContent(data) {
+            return `
+                <div class="custom-popup">
+                    <h6>Sensor Data</h6>
+                    <hr>
+                    <p><strong>Date:</strong> ${data.date}</p>
+                    <p><strong>Time:</strong> ${data.time}</p>
+                    <p><strong>Coordinates:</strong> ${data.lat.toFixed(6)}, ${data.lng.toFixed(6)}</p>
+                    <p><strong>Temperature:</strong> ${data.temp} °C</p>
+                    <p><strong>Humidity:</strong> ${data.hum} %</p>
+                    <p><strong>Battery:</strong> ${data.batt} %</p>
+                    <p><strong>Gyro:</strong> X:${data.gyroX} Y:${data.gyroY} Z:${data.gyroZ}</p>
+                </div>
+            `;
+        }
+
+        // Add a new point marker to the map
+        function addPointMarker(data) {
+            if (!isTracking) return; // Only add markers when tracking is active
+            
+            // Create a new marker for this point
+            var pointMarker = L.marker([data.lat, data.lng], {
+                icon: blueIcon,
+                title: `Data Point - ${data.time}`
+            });
+            
+            // Add popup with sensor data
+            pointMarker.bindPopup(createPopupContent(data));
+            
+            // Add to map and store in array
+            pointMarker.addTo(map);
+            pointMarkers.push(pointMarker);
+            
+            // If we have more than 50 markers, remove the oldest one
+            if (pointMarkers.length > 50) {
+                var oldestMarker = pointMarkers.shift();
+                map.removeLayer(oldestMarker);
+            }
+        }
+
+        // Clear all point markers
+        function clearPointMarkers() {
+            pointMarkers.forEach(marker => {
+                map.removeLayer(marker);
+            });
+            pointMarkers = [];
+        }
+
+        // Update map with new data
+        function updateMap(data) {
+            try {
+                // Extract data from API response
+                var latitude = parseFloat(data.field1);
+                var longitude = parseFloat(data.field2);
+                var hum = parseFloat(data.field3);
+                var temp = parseFloat(data.field4);
+                var batt = parseFloat(data.field5);
+                var gyroX = parseFloat(data.field6);
+                var gyroY = parseFloat(data.field7);
+                var gyroZ = parseFloat(data.field8);
+                var timestamp = data.created_at;
+                
+                // Format values
+                hum = hum.toFixed(2);
+                temp = temp.toFixed(2);
+                batt = batt.toFixed(2);
+                
+                // Convert timestamp to local time
+                var localTime = new Date(timestamp);
+                var options = { timeZone: 'Asia/Makassar', hour12: false };
+                var date_now = localTime.toLocaleDateString('en-CA', { timeZone: 'Asia/Makassar' });
+                var time_now = localTime.toLocaleTimeString('en-GB', { ...options, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+                // Update UI
+                document.getElementById('latitude').textContent = latitude.toFixed(6);
+                document.getElementById('longitude').textContent = longitude.toFixed(6);
+                document.getElementById('time_date').textContent = date_now;
+                document.getElementById('time_time').textContent = time_now;
+                document.getElementById('temperature').textContent = temp;
+                document.getElementById('humidity').textContent = hum;
+                document.getElementById('battery').textContent = batt;
+                document.getElementById('gyroX').textContent = gyroX.toFixed(2);
+                document.getElementById('gyroY').textContent = gyroY.toFixed(2);
+                document.getElementById('gyroZ').textContent = gyroZ.toFixed(2);
+
+                // Store the data for point markers
+                lastData = {
+                    lat: latitude,
+                    lng: longitude,
+                    hum: hum,
+                    temp: temp,
+                    batt: batt,
+                    gyroX: gyroX.toFixed(2),
+                    gyroY: gyroY.toFixed(2),
+                    gyroZ: gyroZ.toFixed(2),
+                    date: date_now,
+                    time: time_now
+                };
+
+                // Update markers and map
+                updateMarker(hum, temp, batt, latitude, longitude, date_now, time_now);
+                
+                // If tracking, add point to polyline
+                if (isTracking) {
+                    trackPoints.push([latitude, longitude]);
+                    polyline.setLatLngs(trackPoints).addTo(map);
+                    
+                    // Send data to ESP32 for SD card logging
+                    if (esp32IP) {
+                        const csvData = formatCSVData(latitude, longitude, hum, temp, batt, gyroX, gyroY, gyroZ, date_now, time_now);
+                        sendDataToESP32(csvData);
+                    }
+                }
+
+                // Center map on new location
+                map.panTo([latitude, longitude]);
+                
+                // Set ESP32 IP from the first data point if not set
+                if (!esp32IP && data.field9) {
+                    esp32IP = data.field9;
+                }
+            } catch (error) {
+                console.error("Error in updateMap:", error);
+            }
+        }
+
+        function formatCSVData(lat, lng, hum, temp, batt, gyroX, gyroY, gyroZ, date, time) {
+            // Format data as CSV line
+            return `${date},${time},${lat},${lng},${temp},${hum},${batt},${gyroX},${gyroY},${gyroZ}`;
+        }
+
+        function sendDataToESP32(csvData) {
+            fetch(`http://${esp32IP}/log-data`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'text/plain',
+                },
+                body: csvData
+            })
+            .then(response => response.text())
+            .then(data => {
+                console.log('Data logged to SD:', data);
+            })
+            .catch(error => {
+                console.error('Error logging data:', error);
+            });
+        }
+
+        function updateMarker(hum, temp, batt, latitude, longitude, date_now, time_now) {
+            // Clear existing main markers (keep point markers)
+            map.eachLayer(layer => {
+                if (layer instanceof L.Marker && (layer === initialMarker || layer === trackingMarker || layer === finishMarker)) {
+                    map.removeLayer(layer);
+                }
+            });
+
+            // Create popup content
+            var customPopup = `
+                <div class="custom-popup">
+                    <b>Current Data<br>${date_now} ${time_now}</b><br>
+                    <b>Temperature: </b>${temp} °C<br>
+                    <b>Humidity: </b>${hum} %<br>
+                    <b>Battery: </b>${batt} %
+                </div>
+            `;
+
+            // Add appropriate marker based on tracking state
+            if (!isTracking) {
+                initialMarker.setLatLng([latitude, longitude])
+                    .bindPopup(customPopup)
+                    .addTo(map);
+            } else if (isTracking) {
+                trackingMarker.setLatLng([latitude, longitude])
+                    .bindPopup(customPopup)
+                    .addTo(map);
+            }
+        }
+
+        function startTracking() {
+            isTracking = true;
+            trackPoints = []; // Reset track points
+            clearPointMarkers(); // Clear any existing point markers
+            startTrackingButton.style.display = 'none';
+            stopTrackingButton.style.display = 'inline-block';
+            resetButton.style.display = 'none';
+            
+            // Start adding point markers every 3 seconds
+            pointInterval = setInterval(() => {
+                if (lastData && isTracking) {
+                    addPointMarker(lastData);
+                }
+            }, 3000);
+            
+            // Generate a unique filename based on current timestamp
+            const now = new Date();
+            currentFileName = `track_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}${now.getSeconds().toString().padStart(2, '0')}.csv`;
+            
+            // Send command to ESP32 to start logging to SD card with CSV header
+            if (esp32IP) {
+                // First send the CSV header
+                const csvHeader = "Date,Time,Latitude,Longitude,Temperature,Humidity,Battery,GyroX,GyroY,GyroZ";
+                fetch(`http://${esp32IP}/start-logging`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain',
+                    },
+                    body: `filename=${currentFileName}\n${csvHeader}`
+                })
+                .then(response => response.text())
+                .then(result => {
+                    console.log("SD Logging started:", result);
+                    alert(`Tracking started. Data will be saved to ${currentFileName}`);
+                })
+                .catch(error => console.error('Error starting SD logging:', error));
+            }
+        }
+
+        function stopTracking() {
+            isTracking = false;
+            stopTrackingButton.style.display = 'none';
+            resetButton.style.display = 'inline-block';
+            
+            // Stop adding point markers
+            if (pointInterval) {
+                clearInterval(pointInterval);
+                pointInterval = null;
+            }
+            
+            // Add finish marker at last position
+            if (trackPoints.length > 0) {
+                var lastPoint = trackPoints[trackPoints.length - 1];
+                finishMarker.setLatLng(lastPoint)
+                    .addTo(map);
+            }
+            
+            // Send command to ESP32 to stop logging to SD card
+            if (esp32IP) {
+                fetch(`http://${esp32IP}/stop-logging`)
+                    .then(response => response.text())
+                    .then(result => {
+                        console.log("SD Logging stopped:", result);
+                        alert(`Tracking data has been saved to SD card as ${currentFileName}`);
+                    })
+                    .catch(error => console.error('Error stopping SD logging:', error));
+            }
+        }
+
+        function resetTracking() {
+            // Clear all map elements
+            map.eachLayer(layer => {
+                if (layer instanceof L.Marker || layer instanceof L.Polyline) {
+                    map.removeLayer(layer);
+                }
+            });
+            
+            // Clear point markers
+            clearPointMarkers();
+            
+            // Stop point interval if running
+            if (pointInterval) {
+                clearInterval(pointInterval);
+                pointInterval = null;
+            }
+            
+            // Reset UI
+            resetButton.style.display = 'none';
+            startTrackingButton.style.display = 'inline-block';
+            
+            // Reinitialize markers
+            initialMarker = L.marker([0, 0], {icon: redIcon});
+            trackingMarker = L.marker([0, 0], {icon: blueIcon});
+            finishMarker = L.marker([0, 0], {icon: greenIcon}); 
+            polyline = L.polyline([], { color: 'blue' });
+            
+            // Fetch initial data
+            fetchData();
+        }
+
+        function fetchData() {
+            fetch('https://api.thingspeak.com/channels/2921240/feeds/last.json?api_key=BI9CZCGNVK4I19FH')
+                .then(response => response.json())
+                .then(data => {
+                    console.log("Data received:", data);
+                    updateMap(data);
+                })
+                .catch(error => console.error('Error fetching data:', error));
+        }
+
+        // Event listeners
+        startTrackingButton.addEventListener('click', startTracking);
+        stopTrackingButton.addEventListener('click', stopTracking);
+        resetButton.addEventListener('click', resetTracking);
+
+        // Initial setup
+        initialMarker.addTo(map);
+        
+        // Update the map every 3 seconds
+        setInterval(fetchData, 3000);
+        
+        // Initial fetch
+        fetchData();
+    </script>
+</body>
+</html>
